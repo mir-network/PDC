@@ -1,0 +1,1206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' https://unpkg.com; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https: wss: ws://localhost:8080 ws://127.0.0.1:8080; media-src 'none'; frame-src 'none'; worker-src 'none'"
+    />
+    <title>PublicDataCleanup</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="https://unpkg.com/driver.js@1.3.6/dist/driver.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand" id="brandHome" role="button" tabindex="0" aria-label="Return to welcome">
+          <span class="logo">PDC</span>
+          <div>
+            <div class="brand-title">PublicDataCleanup</div>
+            <div class="brand-subtitle">Community data workflow assistant</div>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button id="shortcutsButton" class="ghost shortcuts-top" type="button">
+            <span class="icon" aria-hidden="true"><i data-lucide="keyboard"></i></span>
+            <span class="label">Shortcuts</span>
+          </button>
+          <button id="versionButton" class="ghost version-button" type="button">ver 5.1</button>
+        </div>
+      </header>
+
+      <main>
+        <section id="welcome" class="welcome">
+          <div class="welcome-hero">
+            <div class="welcome-kicker">
+              <span class="icon" aria-hidden="true"><i data-lucide="sparkles"></i></span>
+              <span>Community-Powered</span>
+            </div>
+            <h1>Welcome to PDC!</h1>
+            <p>
+              This app helps concerned community-members gather, curate, and share public information.
+            </p>
+          </div>
+          <div class="welcome-actions">
+            <button id="tutorialButton" class="ghost tutorial-home-button" type="button">
+              <span class="icon" aria-hidden="true"><i data-lucide="help-circle"></i></span>
+              <span class="label">How to Use This App</span>
+            </button>
+            <button id="welcomeAboutButton" class="ghost tutorial-home-button" type="button">
+              <span class="icon" aria-hidden="true"><i data-lucide="scale"></i></span>
+              <span class="label">About / Legal</span>
+            </button>
+          </div>
+          <div class="card-grid">
+            <button class="card" data-tab="dispatch">
+              <div class="card-icon"><i data-lucide="phone"></i></div>
+              <div class="card-title">Collect Data (Dispatch)</div>
+              <div class="card-text">Organize complex info from many sources.</div>
+            </button>
+            <button class="card" data-tab="salute">
+              <div class="card-icon"><i data-lucide="message-square"></i></div>
+              <div class="card-title">Alert Text</div>
+              <div class="card-text">Format info to let folks know what's going on.</div>
+            </button>
+            <button class="card" data-tab="summary">
+              <div class="card-icon"><i data-lucide="file-text"></i></div>
+              <div class="card-title">Summary/Export</div>
+              <div class="card-text">Review summary settings and export session data.</div>
+            </button>
+          </div>
+          <div class="security-note">
+            <span class="security-note-icon" aria-hidden="true"><i data-lucide="shield-check"></i></span>
+            <div class="security-note-body">
+              <strong>Privacy by default:</strong> This app only saves your notes locally. We do not track you or connect to an external database. If you look up locations, search strings are proxied and not connected to any other data.
+            </div>
+          </div>
+        </section>
+
+        <section id="workspace" class="workspace hidden">
+          <nav class="tabs" role="tablist">
+            <div class="tab-group">
+              <button class="tab active" data-tab="dispatch" role="tab">Dispatch</button>
+              <button class="tab" data-tab="salute" role="tab">Alert</button>
+              <button class="tab" data-tab="summary" role="tab">Summary/Export</button>
+            </div>
+            <div class="tab-meta">
+              <button class="tab tab-ghost" data-tab="settings" role="tab">Settings</button>
+              <button class="tab tab-ghost" data-tab="about" role="tab">About / Legal</button>
+            </div>
+          </nav>
+
+          <section id="dispatch" class="tab-panel active" role="tabpanel">
+            <div class="dispatch-actions">
+                <div class="session-controls">
+                  <span class="session-label">Session</span>
+                  <div class="import-wrap">
+                    <button id="importButton" class="ghost" type="button">Import</button>
+                  <input
+                    id="importFile"
+                    class="import-file"
+                    type="file"
+                    accept="application/json"
+                    aria-label="Import session JSON"
+                  />
+                  </div>
+                  <button id="clearButton" class="ghost danger" type="button">Clear</button>
+                </div>
+              </div>
+            <div id="dispatchHeader" class="dispatch-header">
+              <div id="shiftControls" class="shift-controls">
+                <div class="shift-info">
+                  <div class="time-group">
+                    <span class="clock-icon" aria-hidden="true"><i data-lucide="clock"></i></span>
+                    <span id="timezoneTime" class="timezone-time"></span>
+                    <button id="timezoneLink" class="timezone-link" type="button">Chicago (GMT-6)</button>
+                  </div>
+                  <div class="shift-group area-group">
+                    <label class="area-label" for="shiftArea">
+                      <span class="area-icon" aria-hidden="true"><i data-lucide="map-pin"></i></span>
+                      Area
+                    </label>
+                    <input
+                      id="shiftArea"
+                      class="area-input"
+                      type="text"
+                      placeholder="Area"
+                      autocomplete="off"
+                    />
+                  </div>
+                  <div class="shift-tools">
+                    <button id="searchButton" class="ghost search-button" type="button">
+                      <span class="icon" aria-hidden="true"><i data-lucide="search"></i></span>
+                      <span class="search-label">Search</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="shift-rule" aria-hidden="true"></div>
+                <div class="shift-row">
+                  <span class="shift-label">Shift</span>
+                  <div class="start-stop">
+                    <div class="shift-group start-group">
+                      <button id="startShift" class="ghost">Start</button>
+                      <input id="startTime" class="timestamp" type="text" value="—" aria-label="Shift start time" />
+                    </div>
+                    <div class="shift-group end-group">
+                      <div class="end-row">
+                        <button id="endShift" class="secondary" disabled>End</button>
+                        <div class="end-field">
+                          <input id="endTime" class="timestamp" type="text" value="—" aria-label="Shift end time" />
+                        </div>
+                      </div>
+                      <span id="endNote" class="note end-note"></span>
+                    </div>
+                  </div>
+                  <div class="shift-group view-group">
+                    <span class="view-label">View:</span>
+                    <div class="mode-toggle view-toggle">
+                      <button class="pill active" type="button" data-view="notes" title="Show notes only">
+                        <span class="icon" aria-hidden="true"><i data-lucide="file-text"></i></span>
+                        Notes
+                      </button>
+                      <button class="pill" type="button" data-view="split" title="Show map and notes">
+                        <span class="icon" aria-hidden="true"><i data-lucide="columns-2"></i></span>
+                        Split
+                      </button>
+                      <button class="pill" type="button" data-view="map" title="Show map only">
+                        <span class="icon" aria-hidden="true"><i data-lucide="map"></i></span>
+                        Map
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div id="minimizedSection" class="minimized-section hidden">
+                  <div class="minimized-header">
+                    <div class="minimized-label shift-label">
+                      <span class="minimized-icon" aria-hidden="true"><i data-lucide="layout-grid"></i></span>
+                      MINIMIZED CARDS
+                    </div>
+                    <button id="minimizedToggle" class="minimized-toggle ghost hidden" type="button">
+                      Collapse
+                    </button>
+                  </div>
+                  <div class="minimized-rule" aria-hidden="true"></div>
+                  <div id="minimizedCards" class="minimized-cards"></div>
+                </div>
+              </div>
+            </div>
+
+            <div id="collectView" class="collect-view view-notes">
+              <div class="collect-grid">
+                <div class="columns" id="columns">
+                  <div id="addColumnWrap" class="add-column-wrap">
+                    <button id="addColumn" class="add-column" aria-label="Add card" title="Add card">+</button>
+                  </div>
+                </div>
+                <aside id="mapPanel" class="map-panel" aria-label="Map panel">
+                  <div class="map-shell">
+                    <div class="map-toolbar">
+                      <div class="map-title">Map</div>
+                      <div class="map-meta" id="mapMeta">
+                        Pins sync with cards + notes. Click and drag pin to move it.
+                      </div>
+                      <div class="map-controls">
+                        <button
+                          id="mapFilterLabelTimes"
+                          class="ghost map-filter-toggle"
+                          type="button"
+                          aria-pressed="false"
+                          title="Pick which data to plot on map"
+                        >
+                          Label times
+                        </button>
+                        <button
+                          id="mapFilterMinimized"
+                          class="ghost map-filter-toggle"
+                          type="button"
+                          aria-pressed="false"
+                          title="Pick which data to plot on map"
+                        >
+                          Hide Minimized
+                        </button>
+                        <div class="dropdown map-type-filter">
+                          <button
+                            id="mapTypeButton"
+                            class="ghost map-filter-toggle"
+                            type="button"
+                            aria-expanded="false"
+                            title="Pick which data to plot on map"
+                          >
+                            Show ▾
+                          </button>
+                          <div id="mapTypeMenu" class="dropdown-menu map-type-menu" role="menu"></div>
+                        </div>
+                        <div class="dropdown map-style-filter">
+                          <button
+                            id="mapStyleButton"
+                            class="ghost map-filter-toggle"
+                            type="button"
+                            aria-expanded="false"
+                            title="Pick which data to plot on map"
+                          >
+                            Style ▾
+                          </button>
+                          <div id="mapStyleMenu" class="dropdown-menu map-style-menu" role="menu"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div id="mapFilterNotice" class="map-filter-notice hidden" role="status">
+                      <span class="map-filter-text">
+                        Item not shown because of filter. Click Show ▾ to view this pin.
+                      </span>
+                      <button
+                        id="mapFilterNoticeDismiss"
+                        class="ghost map-filter-dismiss"
+                        type="button"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                    <div id="mapGeocodeNotice" class="map-filter-notice hidden" role="status">
+                      <span id="mapGeocodeText" class="map-filter-text">
+                        Rate limited. Using the existing pin label.
+                      </span>
+                      <button
+                        id="mapGeocodeDismiss"
+                        class="ghost map-filter-dismiss"
+                        type="button"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                    <div id="mapView" class="map-view" aria-label="Dispatch map"></div>
+                  </div>
+                </aside>
+              </div>
+            </div>
+
+          </section>
+
+          <section id="salute" class="tab-panel" role="tabpanel">
+            <div class="format-layout">
+              <div class="format-builder">
+                <div class="format-header">
+                  <div>
+                    <p class="muted">
+                      Choose format→ fill in info→ copy formatted text→ paste into messaging app.
+                    </p>
+                  </div>
+                  <div class="mode-toggle" aria-label="Format toggle">
+                    <button id="formatAlert" class="pill active">ALERTA</button>
+                    <button id="formatSalute" class="pill">SALUTE</button>
+                  </div>
+                </div>
+                <div class="format-descriptions">
+                  <div id="alertDesc">
+                    ALERTA is a practical, community-friendly format for quick
+                    observation reports.
+                  </div>
+                  <div id="saluteDesc" class="hidden">
+                    SALUTE is a structured reporting format for situational
+                    summaries, expecially with armed individuals.
+                  </div>
+                </div>
+                <div id="formatFields" class="format-fields"></div>
+              </div>
+              <div class="format-output">
+                <div class="summary-controls">
+                  <div class="label">Formatted text</div>
+                  <div class="summary-actions">
+                    <button id="copyFormat" class="primary">Copy Text</button>
+                    <button id="clearFormat" class="ghost" type="button">Clear</button>
+                    <span id="copyFormatStatus" class="copy-status" aria-live="polite"></span>
+                  </div>
+                </div>
+                <textarea id="formatOutput" rows="16" aria-label="Formatted output"></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section id="summary" class="tab-panel" role="tabpanel">
+            <div class="dispatch-header summary-panel">
+              <div id="summarySettings" class="summary-settings">
+                <div class="summary-settings-header">
+                  <h1 class="summary-settings-title summary-heading">
+                    <span class="icon" aria-hidden="true"><i data-lucide="cog"></i></span>
+                    Summary Settings
+                  </h1>
+                </div>
+                <div class="summary-settings-grid">
+                  <div class="summary-section">
+                    <div class="summary-filter-title">
+                      <span class="icon" aria-hidden="true"><i data-lucide="filter"></i></span>
+                      Filter Data
+                    </div>
+                    <div class="summary-filter-help">
+                      Click to include/exclude from Summary
+                    </div>
+                    <div id="summaryFilters" class="summary-pills"></div>
+                    <div class="summary-subsection">
+                      <div class="summary-subtitle">Include</div>
+                      <label class="summary-checkbox summary-reportable">
+                        <input id="summaryReportableToggle" type="checkbox" />
+                        Only Reportable
+                      </label>
+                      <label class="summary-checkbox">
+                        <input id="summaryLocationToggle" type="checkbox" />
+                        Location
+                      </label>
+                      <div id="summaryLocationSuboptions" class="summary-suboptions">
+                        <label class="summary-checkbox summary-checkbox-nested">
+                          <input id="summaryLocationAddressToggle" type="checkbox" />
+                          Address
+                        </label>
+                        <label class="summary-checkbox summary-checkbox-nested">
+                          <input id="summaryLocationLatLonToggle" type="checkbox" />
+                          Lat+Lon
+                        </label>
+                      </div>
+                      <label class="summary-checkbox">
+                        <input id="summaryEmojiToggle" type="checkbox" />
+                        Emojis
+                      </label>
+                    </div>
+                  </div>
+                  <div class="summary-section">
+                    <div class="summary-filter-title">
+                      <span class="icon" aria-hidden="true"><i data-lucide="settings-2"></i></span>
+                      MISC
+                    </div>
+                    <label class="summary-checkbox">
+                      <input id="summarySanitizeToggle" type="checkbox" />
+                      Change observer names to numbers
+                    </label>
+                    <label class="summary-checkbox">
+                      <input id="summaryGroupFieldsToggle" type="checkbox" />
+                      Separate fields in Sort By Card/Category
+                    </label>
+                    <label class="summary-checkbox">
+                      <input id="summaryBulletsToggle" type="checkbox" />
+                      Bullets for notes
+                    </label>
+                    <label class="summary-checkbox">
+                      <input id="summarySpaceBetweenToggle" type="checkbox" />
+                      Add space between notes
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div id="summarizeView" class="summarize-view">
+                <h1 class="summary-output-label summary-heading">
+                  <span class="icon" aria-hidden="true"><i data-lucide="receipt-text"></i></span>
+                  Summary Output
+                </h1>
+                <div class="summary-controls summary-panel-controls">
+                  <div class="summary-actions">
+                    <button id="copySummary" class="ghost">
+                      <span class="icon" aria-hidden="true"><i data-lucide="copy"></i></span>
+                      Copy Summary
+                    </button>
+                    <span id="copyStatus" class="copy-status" aria-live="polite"></span>
+                  </div>
+                  <label class="summary-label summary-sort-inline">
+                    Sort by
+                    <select id="summarySort" class="summary-select">
+                      <option value="time">Time</option>
+                      <option value="category">Category</option>
+                      <option value="card">Card</option>
+                    </select>
+                  </label>
+                  <label class="summary-label summary-recent-toggle">
+                    <input id="summaryMostRecentToggle" type="checkbox" />
+                    Most Recent First
+                  </label>
+                  <div class="dropdown">
+                    <button id="exportButton" class="ghost tour-export-button" aria-haspopup="true" aria-expanded="false">
+                      <span class="icon" aria-hidden="true"><i data-lucide="download"></i></span>
+                      Export
+                    </button>
+                    <div id="exportMenu" class="dropdown-menu" role="menu"></div>
+                  </div>
+                </div>
+                <div id="summaryWarning" class="summary-warning hidden">
+                  <span id="summaryWarningText"></span>
+                  <button id="summaryWarningDismiss" class="ghost" type="button">Dismiss</button>
+                </div>
+                <div id="summaryGroupOutput" class="summary-group-output hidden"></div>
+                <div id="summaryOutputWrap" class="summary-edit-wrap">
+                  <div class="summary-link-gutter" aria-hidden="true">
+                    <div id="summaryOutputLinkTrack" class="summary-link-track"></div>
+                  </div>
+                  <textarea id="summaryOutput" rows="16" aria-label="Summary output" wrap="soft"></textarea>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section id="settings" class="tab-panel" role="tabpanel">
+            <div class="dispatch-header settings-panel">
+              <div class="shift-controls settings-controls">
+                <div class="summary-settings-header">
+                  <div class="summary-settings-title">
+                    <span class="icon" aria-hidden="true"><i data-lucide="settings"></i></span>
+                    <span>Settings</span>
+                  </div>
+                </div>
+                <div class="settings-topic">
+                  <div class="section-title settings-section-title">Global Settings</div>
+                  <div id="settingsTimezone" class="settings-section">
+                    <div class="shift-info">
+                      <span class="shift-label">Timezone</span>
+                      <div id="timezoneSelect" class="timezone-select"></div>
+                      <div class="settings-inline settings-time-format">
+                        <span class="label">Time Format</span>
+                        <div class="mode-toggle time-format-toggle" aria-label="Time format toggle">
+                          <button id="summaryTimeFormat24" class="pill" type="button" aria-pressed="false">
+                            15:01
+                          </button>
+                          <button id="summaryTimeFormat12" class="pill" type="button" aria-pressed="false">
+                            3:01pm
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div id="mapSettingsSection" class="settings-section settings-section-save">
+                      <div class="label-row">
+                        <div class="label">Save on Device</div>
+                        <label class="switch">
+                          <input type="checkbox" id="saveToggle" />
+                          <span class="slider"></span>
+                        </label>
+                        <button id="saveInfoButton" class="info-button" type="button" aria-label="Save on device info">
+                          <span class="icon" aria-hidden="true"><i data-lucide="info"></i></span>
+                        </button>
+                      </div>
+                      <div class="hint">
+                        When enabled, data is saved in your <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage" target="_blank" rel="noreferrer">browser storage</a> on this device.
+                      </div>
+                    </div>
+                  </div>
+                  <div class="section-title settings-section-title">Dispatch settings</div>
+                  <div class="shift-rule" aria-hidden="true"></div>
+                  <div class="settings-grid">
+                    <div class="settings-section">
+                      <label class="settings-control-label tour-default-card-type">
+                        Default New Card Type
+                        <div id="defaultCardTypeSelect"></div>
+                      </label>
+                      <div class="label-row">
+                        <div class="label">Card Types Available</div>
+                      </div>
+                      <div id="cardTypeAvailability" class="settings-list"></div>
+                      <div class="hint">Choose which card types show in create/type selectors.</div>
+                    </div>
+                    <div class="settings-section">
+                      <label class="settings-control-label tour-card-palette">
+                        Palette for Cards & Points
+                        <div id="defaultCardColorPalette"></div>
+                      </label>
+                      <label class="settings-control-label tour-color-mode">
+                        How to assign card colors?
+                        <select id="defaultCardColorModeSelect" class="summary-select">
+                          <option value="cycle">Cycle colors (default)</option>
+                          <option value="color-by-type">Color by Type (Preset)</option>
+                          <option value="manual">Color by Type (Manual)</option>
+                          <option value="all-grey">All Grey</option>
+                        </select>
+                      </label>
+                      <div id="defaultCardColorByType" class="settings-list tour-color-by-type"></div>
+                      <div class="eyebrow-hint">Changes apply to future cards unless you click below.</div>
+                      <button id="applyCardColorsAll" class="ghost danger tour-apply-card-colors" type="button">
+                        Apply to all cards
+                      </button>
+                      <div class="hint">
+                        Presets auto-map card types. Editing any type color converts the setting to Manual by card type.
+                      </div>
+                    </div>
+                    <div class="settings-section">
+                      <div class="label-row">
+                        <div class="label">Map Search City</div>
+                        <button id="setCityButton" class="ghost" type="button">Set City</button>
+                      </div>
+                      <div id="cityLabel" class="hint">No city set.</div>
+                      <label class="settings-inline">
+                        <span class="label">Search Radius (miles)</span>
+                        <input id="mapRadiusInput" class="settings-input" type="number" min="1" max="500" />
+                      </label>
+                      <div class="hint">Limits geocoding results to a radius around the city.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="settings-topic">
+                  <div class="section-title settings-section-title">Summary Settings</div>
+                  <div class="settings-grid">
+                    <div class="settings-section">
+                      <div class="label-row">
+                        <div class="label">Types Excluded from Summary</div>
+                      </div>
+                      <div id="summaryDefaultExclude" class="settings-list"></div>
+                      <div class="hint">Checked items are excluded by default.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section id="about" class="tab-panel" role="tabpanel">
+            <div class="placeholder about-legal">
+              <div class="about-header">
+                <h2>About / Legal</h2>
+                <button id="aboutTutorialButton" class="ghost tutorial-home-button" type="button">
+                  <span class="icon" aria-hidden="true"><i data-lucide="help-circle"></i></span>
+                  <span class="label">How to Use This App</span>
+                </button>
+              </div>
+              <div class="about-banner">
+                <span class="icon" aria-hidden="true"><i data-lucide="users"></i></span>
+                <span>
+                  Created by parents, friends, and community members across the USA, who are not
+                  ok with abductions, mistreatment, or dehumanizing of our immigrant neighbors or
+                  any other group.
+                </span>
+              </div>
+              <blockquote class="about-quote">
+                "We hold these truths to be self-evident, that all men are created equal, that
+                they are endowed by their Creator with certain unalienable Rights, that among
+                these are Life, Liberty and the pursuit of Happiness."
+                <a
+                  href="https://en.wikipedia.org/wiki/United_States_Declaration_of_Independence#Annotated_text_of_the_engrossed_declaration"
+                  target="_blank"
+                  rel="noreferrer"
+                  >[Reread it, if you've forgotten what this country is supposed to stand for...]</a
+                >
+              </blockquote>
+              <div class="about-section">
+                <p>
+                  <span class="icon" aria-hidden="true"><i data-lucide="scale"></i></span>
+                  PublicDataCleanup is provided without warranty or guarantee. It is intended to
+                  support lawful gathering and analysis of public data. It should never be used to
+                  endanger, intimidate, or interfere with anyone, including legal law enforcement.
+                </p>
+              </div>
+              <div class="about-section">
+                <p>
+                  <span class="icon" aria-hidden="true"><i data-lucide="globe-lock"></i></span>
+                  This app does not transmit data by default. All information stays on your device
+                  until you deliberately share it with someone. If you use mapping, your
+                  search text goes out to a geocoding + map service, but your tags and notes stay
+                  on this computer unless you share them.
+                </p>
+              </div>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div id="tutorialPickerModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div
+        class="modal-content tutorial-modal tutorial-picker-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tutorialPickerTitle"
+      >
+        <div class="modal-header">
+          <h2 id="tutorialPickerTitle">
+            <span class="icon" aria-hidden="true"><i data-lucide="route"></i></span>
+            Pick a Tutorial.
+          </h2>
+          <button id="tutorialPickerClose" class="ghost" type="button">Close</button>
+        </div>
+        <div class="modal-note">
+          <span class="icon" aria-hidden="true"><i data-lucide="circle-alert"></i></span>
+          If you have an active session, save it. Tutorials may load example data that overwrites the active data.
+        </div>
+        <div id="tutorialList" class="tutorial-list"></div>
+      </div>
+    </div>
+
+    <div id="tutorialWelcomeModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div
+        class="modal-content tutorial-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tutorialWelcomeTitle"
+      >
+        <h3 id="tutorialWelcomeTitle" class="tutorial-modal-title">Welcome to the Tour!</h3>
+        <p id="tutorialWelcomeText" class="tutorial-modal-body tutorial-welcome-text"></p>
+        <div class="modal-actions">
+          <button id="tutorialWelcomeBack" class="ghost" type="button">Back</button>
+          <button id="tutorialStart" class="primary" type="button">START</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="tutorialCompleteModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div
+        class="modal-content tutorial-modal tutorial-complete-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tutorialCompleteTitle"
+      >
+        <h3 id="tutorialCompleteTitle" class="tutorial-modal-title tutorial-complete-title">Tutorial Complete</h3>
+        <p id="tutorialCompleteText" class="tutorial-modal-body tutorial-complete-text"></p>
+        <div class="modal-actions">
+          <button id="tutorialTakeAnother" class="ghost" type="button">Take another tour</button>
+          <button id="tutorialCompleteClose" class="primary" type="button">Tour Complete</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="vehicleModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="vehicleTitle">
+        <h3 id="vehicleTitle">Add Vehicle</h3>
+        <p id="vehicleModalSubtitle" class="muted">Add what info you know about the vehicle in question.</p>
+        <div class="modal-section vehicle-note-section">
+          <div class="vehicle-note-grid vehicle-note-grid-plate">
+            <label class="vehicle-note-field vehicle-note-field-plate">
+              <span class="vehicle-note-field-label">Plate</span>
+              <input id="vehiclePlate" type="text" />
+            </label>
+            <label class="vehicle-note-field">
+              <span class="vehicle-note-field-label">State</span>
+              <input id="vehicleState" list="stateOptions" />
+              <datalist id="stateOptions"></datalist>
+            </label>
+          </div>
+          <div class="vehicle-note-grid">
+            <label class="vehicle-note-field vehicle-note-field-make nowrap">
+              <span class="vehicle-note-field-label">Make (Manufacturer)</span>
+              <input id="vehicleMake" list="makeOptions" />
+              <datalist id="makeOptions"></datalist>
+            </label>
+            <label class="vehicle-note-field vehicle-note-field-model">
+              <span class="vehicle-note-field-label">Model</span>
+              <input id="vehicleModel" list="modelOptions" />
+              <datalist id="modelOptions"></datalist>
+            </label>
+            <label class="vehicle-note-field vehicle-note-field-color">
+              <span class="vehicle-note-field-label">Color</span>
+              <input id="vehicleColor" list="colorOptions" />
+              <datalist id="colorOptions"></datalist>
+            </label>
+            <label class="vehicle-note-field vehicle-note-field-body">
+              <span class="vehicle-note-field-label">Body style</span>
+              <input id="vehicleBody" type="text" list="bodyOptions" />
+              <datalist id="bodyOptions"></datalist>
+            </label>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button id="vehicleClose" class="ghost">Close</button>
+          <button id="vehicleAdd" class="primary">Add</button>
+        </div>
+        <div class="modal-note">
+          *If you don't find an exact match for something, just hit Add and you can edit the text.
+        </div>
+      </div>
+    </div>
+    <div id="deleteModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="deleteTitle">
+        <h3 id="deleteTitle">Delete this note?</h3>
+        <p class="muted">This action cannot be undone.</p>
+        <div class="modal-actions">
+          <button id="deleteCancel" class="ghost">Cancel</button>
+          <button id="deleteConfirm" class="primary danger">Delete</button>
+        </div>
+      </div>
+    </div>
+    <div id="reverseGeocodeModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="reverseGeocodeTitle">
+        <h3 id="reverseGeocodeTitle">Failed to find address for the dropped pin</h3>
+        <p class="muted">What do you want to do?</p>
+        <div class="modal-note">
+          <div><strong>Old Location:</strong> <span id="reverseGeocodeOld">Unknown</span></div>
+          <div><strong>New Location:</strong> <span id="reverseGeocodeNew">Unknown</span></div>
+        </div>
+        <div class="modal-actions">
+          <button id="reverseGeocodeCancel" class="primary">Cancel (Keep Old Address)</button>
+          <button id="reverseGeocodeConfirm" class="secondary">Use new location</button>
+        </div>
+      </div>
+    </div>
+    <div id="shortcutsModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle">
+        <div class="modal-header">
+          <h3 id="shortcutsTitle">Keyboard Shortcuts</h3>
+          <div class="shortcuts-tip">
+            <span class="kbd">Ctrl + Shift + /</span>
+            <span class="shortcuts-tip-label">Open this window</span>
+          </div>
+        </div>
+        <div class="modal-list shortcuts-groups">
+          <div class="shortcuts-group">
+            <div class="section-title shortcuts-section-title">
+              <span class="icon" aria-hidden="true"><i data-lucide="compass"></i></span>
+              <span>Navigation + View</span>
+            </div>
+            <div class="modal-list-item">
+              <span class="kbd">Tab</span>
+              <span><span class="shortcut-title">Tab</span>: Move between fields, options, and buttons.</span>
+            </div>
+            <div class="modal-list-item">
+              <span class="kbd">Esc</span>
+              <span><span class="shortcut-title">Escape</span>: Deactivate the selected item or get out of a mode.</span>
+            </div>
+            <div class="modal-list-item">
+              <span class="kbd">Ctrl + Shift + →</span>
+              <span><span class="shortcut-title">Next Card</span>: Move selection to the next card (wraps).</span>
+            </div>
+            <div class="modal-list-item">
+              <span class="kbd">Ctrl + Shift + ←</span>
+              <span><span class="shortcut-title">Prev Card</span>: Move selection to the previous card (wraps).</span>
+            </div>
+            <div class="modal-list-item">
+              <span class="kbd">Ctrl + Shift + 1-0</span>
+              <span><span class="shortcut-title">Target Card</span>: Select card 1, 2, 3, 4...10.</span>
+            </div>
+            <div class="modal-list-item">
+              <span class="kbd">Ctrl + Shift + V</span>
+              <span><span class="shortcut-title">Toggle View</span>: Cycle Notes → Split → Map.</span>
+            </div>
+            <div class="modal-list-item">
+              <span class="kbd">Ctrl + Shift + G</span>
+              <span><span class="shortcut-title">Go to Location</span>: Focus map on selected note/card location.</span>
+            </div>
+            <div class="modal-list-item">
+              <span class="kbd">Ctrl + Cmd + Shift + V</span>
+              <span><span class="shortcut-title">Toggle Tab</span>: Cycle Dispatch → Alert → Summary/Export → Settings → About / Legal.</span>
+            </div>
+          </div>
+
+          <div class="shortcuts-group">
+            <div class="section-title shortcuts-section-title">
+              <span class="icon" aria-hidden="true"><i data-lucide="plus-square"></i></span>
+              <span>Create New</span>
+            </div>
+            <div class="modal-list-item">
+              <span class="kbd">Ctrl + Shift + N</span>
+              <span><span class="shortcut-title">New Note</span>: Create a new note in the selected card and focus it.</span>
+            </div>
+            <div class="modal-list-item">
+              <span class="kbd kbd-stack">
+                Ctrl + Shift + C<br /><span class="kbd-or">OR</span>Ctrl + Cmd + Shift + N
+              </span>
+              <span><span class="shortcut-title">New Card</span>: Create a new card.</span>
+            </div>
+          </div>
+
+          <div class="shortcuts-group">
+            <div class="section-title shortcuts-section-title">
+              <span class="icon" aria-hidden="true"><i data-lucide="map-pin-plus-inside"></i></span>
+              <span>Set Location</span>
+            </div>
+            <div class="modal-list-item">
+              <span class="kbd">Ctrl + Shift + L</span>
+              <span><span class="shortcut-title">Set Location</span>: Tag the selected card or note with a location.</span>
+            </div>
+            <div class="modal-list-item">
+              <span class="kbd">Ctrl + Cmd + Shift + L</span>
+              <span><span class="shortcut-title">Drop Pin Location</span>: Start drag-pin location tagging for the selected card or note.</span>
+            </div>
+          </div>
+
+          <div class="shortcuts-group">
+            <div class="section-title shortcuts-section-title">
+              <span class="icon" aria-hidden="true"><i data-lucide="search"></i></span>
+              <span>Search</span>
+            </div>
+            <div class="modal-list-item">
+              <span class="kbd">Ctrl + Shift + S</span>
+              <span><span class="shortcut-title">Search</span>: Open search in Collect mode.</span>
+            </div>
+          </div>
+
+          <div class="shortcuts-group">
+            <div class="section-title shortcuts-section-title">
+              <span class="icon" aria-hidden="true"><i data-lucide="square-mouse-pointer"></i></span>
+              <span>Card Actions</span>
+            </div>
+            <div class="modal-list-item">
+              <span class="kbd">Ctrl + Shift + R</span>
+              <span><span class="shortcut-title">Report</span>: Toggle Report on the selected note.</span>
+            </div>
+            <div class="modal-list-item">
+              <span class="kbd">Ctrl + Shift + M</span>
+              <span><span class="shortcut-title">Min Card</span>: Minimize the selected card.</span>
+            </div>
+            <div class="modal-list-item">
+              <span class="kbd">Ctrl + Shift + P</span>
+              <span><span class="shortcut-title">Card Color</span>: Toggle through card color options for the selected card.</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button id="shortcutsClose" class="ghost">Close</button>
+        </div>
+      </div>
+    </div>
+    <div id="saveInfoModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="saveInfoTitle">
+        <h3 id="saveInfoTitle">Save on Device</h3>
+        <p class="muted">
+          When enabled, data is saved in your browser storage on this device.
+        </p>
+        <div class="modal-actions">
+          <button id="saveInfoClose" class="ghost">Close</button>
+        </div>
+      </div>
+    </div>
+    <div id="searchModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content search-modal" role="dialog" aria-modal="true" aria-labelledby="searchTitle">
+        <div class="modal-header">
+          <h3 id="searchTitle">Search</h3>
+          <button id="searchClose" class="ghost">Close</button>
+        </div>
+        <label class="modal-field search-field">
+          Search
+          <input id="searchInput" type="text" placeholder="Search cards and notes" autocomplete="off" />
+        </label>
+        <div class="search-results-header">
+          <div class="search-results-title">Results</div>
+        </div>
+        <div id="searchResults" class="search-results">
+          <div class="search-empty">Start typing to search.</div>
+        </div>
+        <div class="modal-note">Tab or ↑/↓ to move, Enter to select, Esc to close.</div>
+      </div>
+    </div>
+    <div id="locationModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content location-modal" role="dialog" aria-modal="true" aria-labelledby="locationTitle">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <h3 id="locationTitle">Set Location</h3>
+            <button id="locationLimitDetail" class="limit-detail" type="button"></button>
+          </div>
+          <div class="modal-header-actions">
+            <button id="locationDropPin" class="ghost" type="button">
+              <span class="icon" aria-hidden="true"><i data-lucide="map-pin-plus-inside"></i></span>
+              Drop Pin
+            </button>
+            <button id="locationClose" class="ghost">Close</button>
+          </div>
+        </div>
+        <div id="locationTargetLabel" class="modal-note"></div>
+        <label class="modal-field location-search-field">
+          Search
+          <div class="location-search-row">
+            <input id="locationSearchInput" type="text" placeholder="Try an address, intersection, or business" autocomplete="off" />
+            <button id="locationClear" class="ghost" type="button">Clear</button>
+          </div>
+        </label>
+        <div class="location-results-header">
+          <div class="section-title">Results</div>
+        </div>
+        <div id="locationResults" class="location-results">
+          <div class="search-empty">Start typing to search.</div>
+        </div>
+        <div class="modal-actions">
+          <button id="locationSet" class="primary">Set Location</button>
+        </div>
+        <div class="modal-note">Search results and pin preview appear on the main map. Drag or click map to fine-tune.</div>
+      </div>
+    </div>
+    <div id="mapCardMetaModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="mapCardMetaTitle">
+        <h3 id="mapCardMetaTitle">New Pinned Card</h3>
+        <p class="muted">Set a title and card type for the new map pin.</p>
+        <div class="map-card-meta-inline">
+          <label class="modal-field map-card-meta-field">
+            Card type
+            <div id="mapCardMetaType"></div>
+            <span id="mapCardMetaTypeHint" class="muted map-card-meta-type-hint hidden">Set by Card</span>
+          </label>
+          <label class="modal-field map-card-meta-field">
+            Card title
+            <input id="mapCardMetaLabel" type="text" placeholder="Optional title" />
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button id="mapCardMetaCancel" class="ghost">Cancel</button>
+          <button id="mapCardMetaSkip" class="ghost">Skip</button>
+          <button id="mapCardMetaSave" class="primary">Save</button>
+        </div>
+      </div>
+    </div>
+    <div id="applyCardColorsModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="applyCardColorsTitle">
+        <h3 id="applyCardColorsTitle">Apply colors to all existing cards?</h3>
+        <p class="muted">
+          This updates every current card color to match your selected defaults and cannot be undone.
+        </p>
+        <div class="modal-actions">
+          <button id="applyCardColorsCancel" class="ghost">Cancel</button>
+          <button id="applyCardColorsConfirm" class="primary">Apply</button>
+        </div>
+      </div>
+    </div>
+    <div id="versionModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="versionTitle">
+        <h3 id="versionTitle">Version History</h3>
+        <div class="version-history">
+            <div class="version-block">
+              <div class="version-major">Version 5.1</div>
+              <ul class="version-list">
+                <li>Made it easier to enter new cars with keyboard only.</li>
+                <li>Gussied up the homepage.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 5.0</div>
+              <ul class="version-list">
+                <li>Vehicle system split into <strong>Vehicle</strong> and <strong>Vehicle List</strong>, with dedicated workflows for each.</li>
+                <li>Map-first location ops are now much faster: inline search previews, drag-pin assignment, and improved pin confirmation behavior.</li>
+                <li>New power shortcuts: <strong>Ctrl + Shift + G</strong> (Go to location), plus expanded drop-pin/location keyboard actions.</li>
+                <li>Vehicle List mapping upgraded: <strong>+ New Vehicle</strong> creates/location-tags a new vehicle note, then opens vehicle info capture.</li>
+                <li>Major UX polish pass: responsive shortcuts modal, stronger focus/keyboard flows, better pin visuals, and safer type-change warnings.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 4.5</div>
+              <ul class="version-list">
+                <li>Location tagging now runs directly on the main map (split-aware), with cleaner close/cancel behavior.</li>
+                <li>Drop-pin flows were unified: modal Drop Pin now exits immediately into draggable pin mode; shortcut drop-pin now tags selected note/card correctly.</li>
+                <li>Map tooltips now include quick actions for delete pin and “Add Newer Location,” plus tighter keyboard/focus polish for note creation.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 4.4</div>
+              <ul class="version-list">
+                <li>Map drop-pin now assigns location by chosen card type (mobile types create a note-level pin).</li>
+                <li>Summary settings now include “Add space between notes” for clearer exported output.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 4.3</div>
+              <ul class="version-list">
+                <li>Vehicle map note labels now show plate + state (when available).</li>
+                <li>Vehicle map detail cards now show make/model, color, and body style up top.</li>
+                <li>added copy vehicle info button to vehicle notes</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 4.2</div>
+              <ul class="version-list">
+                <li>Tours now save progress and can resume after reload.</li>
+                <li>Dispatcher tour now includes map search/pin-drop card creation.</li>
+                <li>Added Advanced Card Color Settings tour.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 4.1</div>
+              <ul class="version-list">
+                <li>Added linkbacks from Summary back to Notes.</li>
+                <li>Renamed "Sanitize Names" option to "Change observer names to numbers".</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 4.0</div>
+              <ul class="version-list">
+                <li>Create cards by dropping pin or looking up location from map!</li>
+                <li>New Vehicle cards, with vehicle fields and validation for state, make, model, and color</li>
+                <li>New settings for colorblind friendly card palettes and color schemes by card type (with manual options)</li>
+                <li>Added Lat+Lon output for locations and improved Summary formatting</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 3.5</div>
+              <ul class="version-list">
+                <li>Added a full YAML-driven tutorial system with tour picker, welcome/completion flows, completion checkmarks, and ordered `N_` tour conventions.</li>
+                <li>Expanded the Dispatch tutorial and sample session so users can practice map/location, summary filtering/sorting, and export workflows in-place.</li>
+                <li>Upgraded About + Summary/Output presentation with clearer legal/privacy messaging and refined visual emphasis in key output areas.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 3.4</div>
+              <ul class="version-list">
+                <li>Unified map label interactions so clicking a pin or label opens the same expanded details.</li>
+                <li>Moved note actions into the expanded map tooltip and removed the separate map popup.</li>
+                <li>Added a copy-address icon in map tooltips with clipboard toast feedback.</li>
+                <li>Opening a note from map labels no longer shifts the map position in split view.</li>
+                <li>Focused labels now auto-pan the map so the full tooltip details stay in view.</li>
+                <li>Updated tooltip action buttons to calmer, neutral styling for readability.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 3.3</div>
+              <ul class="version-list">
+                <li>Made map location links reliably center on the correct target pin.</li>
+                <li>Added a focused pin mode that keeps the selected pin label on top until you click away.</li>
+                <li>Added a short attention pulse on focused pins, without shifting label layout.</li>
+                <li>Made focus ring and pulse color follow each card's pin color.</li>
+                <li>Improved Set Location keyboard flow: Enter now supports select-then-confirm.</li>
+                <li>Double-clicking map labels now activates the related note (latest note for card pins) and scrolls to it.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 3.2</div>
+              <ul class="version-list">
+                <li>Made sure latest observations always stack on top for map pins.</li>
+                <li>Made Global time format setting truly global across time displays.</li>
+                <li>Clarified time format options with explicit 24-hour and 12-hour labels.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 3.1</div>
+              <ul class="version-list">
+                <li>Cleaned up navigation of location tagging modal.</li>
+                <li>Added "Most Recent First" sort option for summary output.</li>
+                <li>Bumped up font size in various places for better legibility.</li>
+                <li>Fixed z-index issue on color dropdown.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 3.0</div>
+              <ul class="version-list">
+                <li>Added card color dropdown.</li>
+                <li>Assigned CTRL+SHIFT+P to toggle through card color &amp; associated pins.</li>
+                <li>
+                  Added pins to location set dialog. Improved keyboard navigation of location
+                  tagging.
+                </li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 2.9</div>
+              <ul class="version-list">
+                <li>Added ability to copy separate copyable fields when sorted by category or card.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 2.8</div>
+              <ul class="version-list">
+                <li>Added new Observer "car" and "bike" types.</li>
+                <li>Removed observer word customization from summary.</li>
+                <li>Made emojis on map labels larger.</li>
+                <li>Swapped out emojis for consistent icons in map labels.</li>
+                <li>Add warning if reportable data is being filtered out of Summary.</li>
+                <li>Improved layout of Summary Output.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 2.7</div>
+              <ul class="version-list">
+                <li>Made dispatch summary preview monotype font so text lines up.</li>
+                <li>
+                  Made sure all types of data tagged for reporting get selected in filter by
+                  default.
+                </li>
+                <li>Various fixes and clarification of Filters and controls of summary tab.</li>
+                <li>Added new Global Settings controls for Default Summary Exclusion.</li>
+                <li>Added new Global Setting for Default New Card Type.</li>
+                <li>Improved maximize card behavior: scroll to and activate.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 2.6</div>
+              <ul class="version-list">
+                <li>Made persistent move button with consistent styling.</li>
+                <li>Improved visibility, styling of location pin buttons.</li>
+                <li>Fixed map header styling.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 2.5</div>
+              <ul class="version-list">
+                <li>Easier, draggable pins (without "move mode").</li>
+                <li>Reverse geocoding--address resolution of dragged pins instead of static text "dragged pin."</li>
+                <li>Center default map on Minneapolis.</li>
+                <li>
+                  Improved tooltips and intuitive connections between note locations inherited
+                  from a card-wide location assignment.
+                </li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 2.4</div>
+              <ul class="version-list">
+                <li>Made expanded labels cleaner.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 2.3</div>
+              <ul class="version-list">
+                <li><span class="version-tag">2.3</span>: CSP bug fix that blocked new maps.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 2.2</div>
+              <ul class="version-list">
+                <li><span class="version-tag">2.2</span>: Now labels (not just pins) clickable and hoverable for more options.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 2.1</div>
+              <ul class="version-list">
+                <li><span class="version-tag">2.1</span>: Added new default map and option to switch back.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 2</div>
+              <ul class="version-list">
+                <li><span class="version-tag">2.0</span>: Map UX overhaul: sticky split view, full-height map view, colored pins with rich tooltips.</li>
+                <li><span class="version-tag">2.0</span>: Map filters: hide minimized, label times, and type-based pin visibility.</li>
+                <li><span class="version-tag">2.0</span>: Notes can be dragged between cards with time-based auto-sorting.</li>
+                <li><span class="version-tag">2.0</span>: Location tagging improvements: new pin icons, clear pin with confirmation, improved tooltips.</li>
+                <li><span class="version-tag">2.0</span>: Timezone fixes: manual shift/note timestamps respect selected timezone.</li>
+              </ul>
+            </div>
+            <div class="version-block">
+              <div class="version-major">Version 1</div>
+              <ul class="version-list">
+                <li><span class="version-tag">1.6</span>: Switched geocoder.</li>
+                <li><span class="version-tag">1.5</span>: Beta implementation of maps.</li>
+                <li><span class="version-tag">1.4</span>: Restored search functionality.</li>
+                <li><span class="version-tag">1.3</span>: Auto-resort cards based on time if manual entries. Improved UI for draggable cards.</li>
+                <li><span class="version-tag">1.2</span>: Added draggable cards without needing to trigger a mode.</li>
+              <li><span class="version-tag">1.1</span>: Major changes to clean up UI. Added icons instead of emojis. Making way for map views.</li>
+              <li><span class="version-tag">1.0</span>: Search added.</li>
+            </ul>
+          </div>
+          <div class="version-block">
+            <div class="version-major">Version 0</div>
+            <ul class="version-list">
+              <li><span class="version-tag">0.2</span>: Added versioning.</li>
+              <li><span class="version-tag">0.1</span>: Added ability to move tiles, add Reportability tag, and many aesthetic improvements.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button id="versionClose" class="ghost">Close</button>
+        </div>
+      </div>
+    </div>
+    <script src="lucide.min.js"></script>
+    <script src="https://unpkg.com/luxon@3.4.4/build/global/luxon.min.js"></script>
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="https://unpkg.com/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+    <script src="https://unpkg.com/driver.js@1.3.6/dist/driver.js.iife.js"></script>
+    <script src="config.generated.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

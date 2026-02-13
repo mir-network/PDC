@@ -1,0 +1,9 @@
+{
+  "name": "public-data-cleanup",
+  "private": true,
+  "version": "5.1",
+  "description": "PublicDataCleanup static app",
+  "scripts": {
+    "dev": "npx live-server --port=8080 --no-browser"
+  }
+}
