@@ -13,7 +13,7 @@ features:
 apis:
   geocoding:
     enabled: true
-    baseUrl: https://pillow.rscheme.org/geolocatemn
+    baseUrl: http://localhost:8000
 map:
   metersPerMile: 1609.34
   defaultCenter:

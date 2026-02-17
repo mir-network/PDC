@@ -13,7 +13,8 @@ features:
 apis:
   geocoding:
     enabled: true
-    baseUrl: 
+    baseUrl: http://localhost:8000
+
 map:
   metersPerMile: 1609.34
   defaultCenter:
