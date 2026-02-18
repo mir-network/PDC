@@ -1,6 +1,8 @@
 import json
 from fastapi import FastAPI, HTTPException, Response
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
+import starlette.status as status
 import os
 import requests
 from pydantic import BaseModel
@@ -33,6 +35,11 @@ CENTER_LON = float(os.environ["CENTER_LON"])
 class Search(BaseModel):
     search: str
 
+@app.get("/", status_code=301)
+async def index():
+     return RedirectResponse(
+        url="/ui", status_code=status.HTTP_301_MOVED_PERMANENTLY
+     )
 
 @app.post("/search")
 async def search(search: Search):
