@@ -20,10 +20,11 @@ app.add_middleware(
 
 app.mount("/ui", StaticFiles(directory="/app/static", html=True))
 
-KEY = getenv("MAPS_KEY")
+KEY = os.getenv("MAPS_KEY")
 if KEY == None:
   with open(os.environ["MAPS_KEY_FILE"]) as f:
-    KEY = f.read()
+    KEY = f.read().strip()
+print("API key: "+KEY)
 MAPS_URL = os.environ["MAPS_URL"]
 CENTER_LAT = float(os.environ["CENTER_LAT"])
 CENTER_LON = float(os.environ["CENTER_LON"])
