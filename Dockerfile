@@ -15,7 +15,7 @@ COPY config.generated.js /app/static
 
 COPY server/server.py /app
 
-ENV MAPS_URL=
+ENV MAPS_URL=http://127.0.0.1:8000
 ENV CENTER_LAT=44.9713728
 ENV CENTER_LON=-93.2610879
 
